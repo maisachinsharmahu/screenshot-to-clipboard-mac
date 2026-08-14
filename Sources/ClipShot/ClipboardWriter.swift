@@ -10,7 +10,7 @@ enum ClipboardWriter {
 
         if ext == "mov" {
             DispatchQueue.global(qos: .userInitiated).async {
-                waitForStableSize(url)
+                waitForStableSize(url, pollInterval: 1.0, maxTries: 600)
                 guard generation == currentGeneration() else { return }
                 DispatchQueue.main.async {
                     let pb = NSPasteboard.general
@@ -20,7 +20,22 @@ enum ClipboardWriter {
             }
         } else {
             DispatchQueue.global(qos: .userInitiated).async {
-                guard let image = NSImage(contentsOf: url) else { return }
+                // The watcher fires the instant the file is *created*, which
+                // can be before macOS finishes writing its bytes — reading
+                // too early yields a nil/partial NSImage that silently drops
+                // the copy until the next safety-net poll. Screenshots write
+                // fast, so a short stabilization wait (unlike the multi-
+                // second one recordings need) is enough to avoid that.
+                waitForStableSize(url, pollInterval: 0.05, maxTries: 40)
+
+                var image = NSImage(contentsOf: url)
+                var attempt = 0
+                while image == nil && attempt < 5 {
+                    Thread.sleep(forTimeInterval: 0.05)
+                    image = NSImage(contentsOf: url)
+                    attempt += 1
+                }
+                guard let image else { return }
                 guard generation == currentGeneration() else { return }
                 DispatchQueue.main.async {
                     let pb = NSPasteboard.general
@@ -31,17 +46,18 @@ enum ClipboardWriter {
         }
     }
 
-    /// Screen recordings keep growing after the file appears; wait until
-    /// the size stops changing before treating it as finished.
-    private static func waitForStableSize(_ url: URL) {
+    /// Waits until a file's size stops changing between polls, i.e. macOS
+    /// has finished writing it. Returns as soon as two consecutive reads
+    /// agree, or after maxTries polls if it never stabilizes.
+    private static func waitForStableSize(_ url: URL, pollInterval: TimeInterval, maxTries: Int) {
         var lastSize: Int64 = -1
         var tries = 0
-        while tries < 600 {
+        while tries < maxTries {
             guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
                   let size = attrs[.size] as? Int64 else { return }
-            if size == lastSize { return }
+            if size == lastSize && size > 0 { return }
             lastSize = size
-            Thread.sleep(forTimeInterval: 1)
+            Thread.sleep(forTimeInterval: pollInterval)
             tries += 1
         }
     }
