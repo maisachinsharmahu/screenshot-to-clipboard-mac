@@ -1,14 +1,17 @@
 import Foundation
 
-/// Watches a folder for new screenshots/recordings using a live
-/// DispatchSource file-system-object stream (real FSEvents-backed
-/// notification from inside our own approved process — this is what makes
-/// detection near-instant, unlike a background launchd job watching from
-/// the outside). A slow safety-net poll covers the rare missed event.
+/// Watches a folder for new screenshots/recordings.
+///
+/// This intentionally uses a tight poll loop (every 0.3s) rather than a
+/// DispatchSource file-system-object event stream. The event-based version
+/// was tried first and looked more "proper," but in real-world testing with
+/// actual macOS screenshot captures (as opposed to synthetic file copies)
+/// its "write" event didn't fire reliably, so detection fell back to a slow
+/// safety-net poll most of the time. A plain fast poll is simpler and was
+/// empirically the fast, reliable option — checking a directory listing
+/// every 0.3s costs nothing measurable.
 final class ScreenshotWatcher {
     private let folder: URL
-    private var source: DispatchSourceFileSystemObject?
-    private var fileDescriptor: CInt = -1
     private var pollTimer: DispatchSourceTimer?
     private var lastSeen: URL?
 
@@ -24,23 +27,8 @@ final class ScreenshotWatcher {
     func start() {
         lastSeen = newestMatchingFile()
 
-        fileDescriptor = open(folder.path, O_EVTONLY)
-        if fileDescriptor >= 0 {
-            let src = DispatchSource.makeFileSystemObjectSource(
-                fileDescriptor: fileDescriptor,
-                eventMask: .write,
-                queue: DispatchQueue.global(qos: .userInitiated)
-            )
-            src.setEventHandler { [weak self] in self?.check() }
-            src.setCancelHandler { [weak self] in
-                if let fd = self?.fileDescriptor, fd >= 0 { close(fd) }
-            }
-            src.resume()
-            source = src
-        }
-
-        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
-        timer.schedule(deadline: .now() + 2, repeating: 2)
+        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
+        timer.schedule(deadline: .now() + 0.3, repeating: 0.3)
         timer.setEventHandler { [weak self] in self?.check() }
         timer.resume()
         pollTimer = timer
@@ -49,8 +37,6 @@ final class ScreenshotWatcher {
     }
 
     func stop() {
-        source?.cancel()
-        source = nil
         pollTimer?.cancel()
         pollTimer = nil
     }

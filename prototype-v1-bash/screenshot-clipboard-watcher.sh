@@ -7,7 +7,7 @@
 # that only the truly-latest screenshot ever wins the clipboard, even if an
 # older copy is still mid-flight when a newer screenshot arrives.
 #
-# ARCHIVED — superseded by the native Swift app in Sources/ClipShot/.
+# ARCHIVED — superseded by the native Swift app in Sources/ScreenshotToClipboard/.
 
 RAW_LOCATION=$(defaults read com.apple.screencapture location 2>/dev/null)
 if [ -n "$RAW_LOCATION" ]; then

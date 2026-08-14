@@ -57,7 +57,7 @@ final class AppState: ObservableObject {
 
     /// macOS silently restricts unapproved background processes from the
     /// special Desktop/Documents/Downloads folders. Rather than fight that,
-    /// ClipShot simply doesn't allow watching them (or anything inside them).
+    /// Screenshot to Clipboard simply doesn't allow watching them (or anything inside them).
     static func isBlockedFolder(_ url: URL) -> Bool {
         let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
         let blockedNames = ["Desktop", "Documents", "Downloads", "Library"]
@@ -88,16 +88,27 @@ final class AppState: ObservableObject {
     }
 
     private func pointSystemScreenshotsAt(_ url: URL) {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
-        task.arguments = ["write", "com.apple.screencapture", "location", url.path]
-        try? task.run()
-        task.waitUntilExit()
+        runDefaults(["write", "com.apple.screencapture", "location", url.path])
+
+        // The floating thumbnail preview holds the screenshot in a temp
+        // staging location until it's dismissed or times out, which delays
+        // the real file from ever reaching our watched folder — defeating
+        // the whole point of auto-copying. Disabling it makes macOS write
+        // the file straight to disk immediately, no staging delay.
+        runDefaults(["write", "com.apple.screencapture", "show-thumbnail", "-bool", "false"])
 
         let restart = Process()
         restart.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
         restart.arguments = ["SystemUIServer"]
         try? restart.run()
+    }
+
+    private func runDefaults(_ arguments: [String]) {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
+        task.arguments = arguments
+        try? task.run()
+        task.waitUntilExit()
     }
 
     func completeOnboarding() {

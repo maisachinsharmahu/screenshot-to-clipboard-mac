@@ -2,7 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP_NAME="ClipShot"
+BINARY_NAME="ScreenshotToClipboard"   # Swift product name (Contents/MacOS/<this>)
+APP_NAME="Screenshot to Clipboard"    # .app bundle display name in Finder
 BUILD_DIR=".build/release"
 DIST_DIR="dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
@@ -14,7 +15,7 @@ echo "==> Assembling .app bundle"
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
 
-cp "$BUILD_DIR/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+cp "$BUILD_DIR/$BINARY_NAME" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
 cp Resources/Info.plist "$APP_BUNDLE/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 

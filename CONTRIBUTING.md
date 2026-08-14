@@ -1,6 +1,6 @@
-# Contributing to ClipShot
+# Contributing to Screenshot to Clipboard
 
-Thanks for considering a contribution! ClipShot is a small, focused app —
+Thanks for considering a contribution! Screenshot to Clipboard is a small, focused app —
 please keep PRs scoped and avoid adding new permissions/entitlements without
 discussion in an issue first (privacy/minimal-permissions is a core design
 goal, see [PRIVACY.md](PRIVACY.md)).
@@ -8,8 +8,8 @@ goal, see [PRIVACY.md](PRIVACY.md)).
 ## Setup
 
 ```bash
-git clone https://github.com/maisachinsharmahu/clipshot.git
-cd clipshot
+git clone https://github.com/maisachinsharmahu/screenshot-to-clipboard-mac.git
+cd screenshot-to-clipboard-mac
 swift build
 ```
 
@@ -19,7 +19,7 @@ editor and use `swift build` / `./scripts/build_app.sh` from the terminal.
 ## Project layout
 
 ```
-Sources/ClipShot/
+Sources/ScreenshotToClipboard/
   main.swift              — entry point, activation policy
   AppDelegate.swift        — menu bar, window management
   AppState.swift           — settings, orchestration
@@ -34,7 +34,7 @@ Sources/ClipShot/
 
 ## Reporting bugs
 
-Open a GitHub issue with your macOS version, ClipShot version, and repro
+Open a GitHub issue with your macOS version, Screenshot to Clipboard version, and repro
 steps.
 
 ## Pull requests

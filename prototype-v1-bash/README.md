@@ -1,7 +1,7 @@
 # Prototype v1 (bash/launchd) — superseded
 
 This folder is a historical archive of the first working prototype, built
-before ClipShot became a native Swift app. Kept for reference only — **not
+before it became a native Swift app. Kept for reference only — **not
 used by the app and not run by anything.**
 
 Evolution:
@@ -29,4 +29,4 @@ Evolution:
 
 All of these lessons (folder must not be Desktop/Documents/Downloads;
 avoid slow AppleScript coercion; avoid `WatchPaths`) carried directly into
-the native app's design — see `Sources/ClipShot/` in the repo root.
+the native app's design — see `Sources/ScreenshotToClipboard/` in the repo root.

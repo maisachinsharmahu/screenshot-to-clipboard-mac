@@ -3,19 +3,19 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>ClipShot</string>
+    <string>Screenshot to Clipboard</string>
     <key>CFBundleDisplayName</key>
-    <string>ClipShot</string>
+    <string>Screenshot to Clipboard for Mac</string>
     <key>CFBundleIdentifier</key>
-    <string>com.clipshot.app</string>
+    <string>com.screenshottoclipboard.app</string>
     <key>CFBundleVersion</key>
-    <string>1.0.0</string>
+    <string>1.0.3</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>1.0.3</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>ClipShot</string>
+    <string>ScreenshotToClipboard</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>

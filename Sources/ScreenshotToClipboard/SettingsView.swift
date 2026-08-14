@@ -28,7 +28,7 @@ struct SettingsView: View {
 
             Section("About") {
                 LabeledContent("Version", value: appVersion)
-                Link("Privacy Policy & Source on GitHub", destination: URL(string: "https://github.com/maisachinsharmahu/clipshot")!)
+                Link("Privacy Policy & Source on GitHub", destination: URL(string: "https://github.com/maisachinsharmahu/screenshot-to-clipboard-mac")!)
             }
         }
         .padding(20)

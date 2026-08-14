@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "photo.badge.checkmark", accessibilityDescription: "ClipShot")
+            button.image = NSImage(systemSymbolName: "photo.badge.checkmark", accessibilityDescription: "Screenshot to Clipboard")
         }
 
         let menu = NSMenu()
@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Settings…", action: #selector(showSettingsMenuAction), keyEquivalent: ",")
             .target = self
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Quit ClipShot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Screenshot to Clipboard", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         item.menu = menu
         statusItem = item
@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let view = GalleryView().environmentObject(appState)
             let hosting = NSHostingController(rootView: view)
             let window = NSWindow(contentViewController: hosting)
-            window.title = "ClipShot"
+            window.title = "Screenshot to Clipboard"
             window.setContentSize(NSSize(width: 720, height: 560))
             window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
             window.center()
@@ -69,7 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let view = SettingsView().environmentObject(appState)
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "ClipShot Settings"
+        window.title = "Screenshot to Clipboard Settings"
         window.setContentSize(NSSize(width: 460, height: 380))
         window.styleMask = [.titled, .closable]
         window.center()
@@ -89,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         .environmentObject(appState)
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Welcome to ClipShot"
+        window.title = "Welcome to Screenshot to Clipboard"
         window.setContentSize(NSSize(width: 520, height: 500))
         window.styleMask = [.titled, .closable]
         window.center()

@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "ClipShot",
+    name: "ScreenshotToClipboard",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "ClipShot",
-            path: "Sources/ClipShot"
+            name: "ScreenshotToClipboard",
+            path: "Sources/ScreenshotToClipboard"
         )
     ]
 )
