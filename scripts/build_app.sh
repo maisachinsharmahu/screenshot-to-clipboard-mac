@@ -18,6 +18,8 @@ mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
 cp "$BUILD_DIR/$BINARY_NAME" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
 cp Resources/Info.plist "$APP_BUNDLE/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+cp Resources/configure-screencapture.sh "$APP_BUNDLE/Contents/Resources/configure-screencapture.sh"
+chmod +x "$APP_BUNDLE/Contents/Resources/configure-screencapture.sh"
 
 echo "==> Ad-hoc code signing"
 codesign --force --deep --sign - "$APP_BUNDLE"

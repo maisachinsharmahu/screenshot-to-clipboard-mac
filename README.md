@@ -86,6 +86,12 @@ delay at all.
 - Screen recordings (`.mov`) are copied as a **file reference** once their
   file size stops growing (i.e. once the recording is finished writing),
   since videos aren't put on the clipboard as raw pixel data.
+- The one-time system changes made during setup (pointing macOS's
+  screenshot location, disabling the floating thumbnail) aren't hidden
+  inline in the compiled app — they live in a plain, readable shell script
+  bundled at `Contents/Resources/configure-screencapture.sh`, so you can
+  see exactly what it runs before or after installing. Source:
+  [`Resources/configure-screencapture.sh`](Resources/configure-screencapture.sh).
 
 ## Uninstall
 

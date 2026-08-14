@@ -87,26 +87,17 @@ final class AppState: ObservableObject {
         return true
     }
 
+    /// Runs the bundled configure-screencapture.sh (Contents/Resources/) —
+    /// kept as its own script file rather than inline Process() calls so
+    /// exactly what this app does to your system defaults is a plain,
+    /// readable, auditable file instead of hidden in the compiled binary.
     private func pointSystemScreenshotsAt(_ url: URL) {
-        runDefaults(["write", "com.apple.screencapture", "location", url.path])
-
-        // The floating thumbnail preview holds the screenshot in a temp
-        // staging location until it's dismissed or times out, which delays
-        // the real file from ever reaching our watched folder — defeating
-        // the whole point of auto-copying. Disabling it makes macOS write
-        // the file straight to disk immediately, no staging delay.
-        runDefaults(["write", "com.apple.screencapture", "show-thumbnail", "-bool", "false"])
-
-        let restart = Process()
-        restart.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        restart.arguments = ["SystemUIServer"]
-        try? restart.run()
-    }
-
-    private func runDefaults(_ arguments: [String]) {
+        guard let scriptPath = Bundle.main.path(forResource: "configure-screencapture", ofType: "sh") else {
+            return
+        }
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
-        task.arguments = arguments
+        task.executableURL = URL(fileURLWithPath: "/bin/bash")
+        task.arguments = [scriptPath, url.path]
         try? task.run()
         task.waitUntilExit()
     }
