@@ -20,6 +20,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    /// Belt-and-suspenders: the background watcher must never die just
+    /// because every window happened to close. Only the explicit "Quit
+    /// ClipShot" menu item should terminate the app.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     // MARK: - Status bar
 
     private func setupStatusItem() {
@@ -45,9 +52,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showSettingsMenuAction() { showSettings() }
 
     // MARK: - Windows
+    //
+    // Deliberately never call NSApp.setActivationPolicy(.regular) here.
+    // Staying .accessory the whole time (no Dock icon, no synthesized
+    // application menu bar) means there's never an auto-bound Cmd+Q to
+    // accidentally terminate the whole app when someone just wants to
+    // close a window -- windows still open, focus, and work normally
+    // under .accessory, they just don't get Dock/Cmd+Tab presence.
 
     func showGallery() {
-        NSApp.setActivationPolicy(.regular)
         if galleryWindow == nil {
             let view = GalleryView().environmentObject(appState)
             let hosting = NSHostingController(rootView: view)
@@ -58,7 +71,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
             window.center()
             window.isReleasedWhenClosed = false
-            window.delegate = self
             galleryWindow = window
         }
         NSApp.activate(ignoringOtherApps: true)
@@ -66,7 +78,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func showSettings() {
-        NSApp.setActivationPolicy(.regular)
         let view = SettingsView().environmentObject(appState)
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
@@ -75,17 +86,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.styleMask = [.titled, .closable]
         window.center()
         window.isReleasedWhenClosed = false
-        window.delegate = self
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     private func showOnboarding() {
-        NSApp.setActivationPolicy(.regular)
         let view = OnboardingView(onFinished: { [weak self] in
             self?.onboardingWindow?.close()
             self?.onboardingWindow = nil
-            NSApp.setActivationPolicy(.accessory)
         })
         .environmentObject(appState)
         let hosting = NSHostingController(rootView: view)
@@ -96,21 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.styleMask = [.titled, .closable]
         window.center()
         window.isReleasedWhenClosed = false
-        window.delegate = self
         onboardingWindow = window
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
-    }
-}
-
-extension AppDelegate: NSWindowDelegate {
-    func windowWillClose(_ notification: Notification) {
-        // Drop back to agent (no Dock icon) once no regular windows remain.
-        DispatchQueue.main.async {
-            let anyVisible = NSApp.windows.contains { $0.isVisible && $0.styleMask.contains(.titled) }
-            if !anyVisible {
-                NSApp.setActivationPolicy(.accessory)
-            }
-        }
     }
 }
