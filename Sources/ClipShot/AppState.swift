@@ -1,0 +1,167 @@
+import Foundation
+import AppKit
+import UserNotifications
+import ServiceManagement
+
+/// Central, observable app state: settings, the watched folder, and the
+/// live list of screenshots/recordings shown in the gallery.
+final class AppState: ObservableObject {
+    static let shared = AppState()
+
+    @Published var watchFolderPath: String? {
+        didSet { UserDefaults.standard.set(watchFolderPath, forKey: Keys.watchFolder) }
+    }
+    @Published var files: [URL] = []
+    @Published var launchAtLogin: Bool = false {
+        didSet { applyLaunchAtLogin() }
+    }
+    @Published var showNotifications: Bool {
+        didSet { UserDefaults.standard.set(showNotifications, forKey: Keys.notifications) }
+    }
+    @Published var needsOnboarding: Bool
+    @Published var lastCopiedName: String?
+
+    private var watcher: ScreenshotWatcher?
+    private var generation: Int = 0
+
+    private enum Keys {
+        static let watchFolder = "watchFolderPath"
+        static let notifications = "showNotifications"
+        static let onboardingDone = "onboardingDone"
+    }
+
+    private init() {
+        let defaults = UserDefaults.standard
+        self.watchFolderPath = defaults.string(forKey: Keys.watchFolder)
+        self.showNotifications = defaults.object(forKey: Keys.notifications) as? Bool ?? true
+        self.needsOnboarding = !defaults.bool(forKey: Keys.onboardingDone)
+        self.launchAtLogin = SMAppService.mainApp.status == .enabled
+
+        if let path = watchFolderPath, FileManager.default.fileExists(atPath: path) {
+            startWatching(URL(fileURLWithPath: path))
+        }
+    }
+
+    // MARK: - Folder validation
+
+    /// macOS silently restricts unapproved background processes from the
+    /// special Desktop/Documents/Downloads folders. Rather than fight that,
+    /// ClipShot simply doesn't allow watching them (or anything inside them).
+    static func isBlockedFolder(_ url: URL) -> Bool {
+        let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+        let blockedNames = ["Desktop", "Documents", "Downloads", "Library"]
+        let target = url.standardizedFileURL.path
+        for name in blockedNames {
+            let blockedPath = home + "/" + name
+            if target == blockedPath || target.hasPrefix(blockedPath + "/") {
+                return true
+            }
+        }
+        return false
+    }
+
+    static var defaultSuggestedFolder: URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Screenshots")
+    }
+
+    // MARK: - Folder setup
+
+    @discardableResult
+    func setWatchFolder(_ url: URL) -> Bool {
+        guard !Self.isBlockedFolder(url) else { return false }
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        watchFolderPath = url.path
+        pointSystemScreenshotsAt(url)
+        startWatching(url)
+        return true
+    }
+
+    private func pointSystemScreenshotsAt(_ url: URL) {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
+        task.arguments = ["write", "com.apple.screencapture", "location", url.path]
+        try? task.run()
+        task.waitUntilExit()
+
+        let restart = Process()
+        restart.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+        restart.arguments = ["SystemUIServer"]
+        try? restart.run()
+    }
+
+    func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: Keys.onboardingDone)
+        needsOnboarding = false
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
+    // MARK: - Watching
+
+    private func startWatching(_ url: URL) {
+        watcher?.stop()
+        let w = ScreenshotWatcher(folder: url)
+        w.onNewFile = { [weak self] fileURL in
+            self?.handleNewFile(fileURL)
+        }
+        w.onFilesChanged = { [weak self] urls in
+            DispatchQueue.main.async { self?.files = urls }
+        }
+        w.start()
+        watcher = w
+    }
+
+    private func handleNewFile(_ url: URL) {
+        generation += 1
+        let myGeneration = generation
+        ClipboardWriter.copy(url, generation: myGeneration, currentGeneration: { [weak self] in self?.generation ?? -1 })
+        DispatchQueue.main.async { [weak self] in
+            self?.lastCopiedName = url.lastPathComponent
+            self?.notify(fileName: url.lastPathComponent)
+        }
+    }
+
+    private func notify(fileName: String) {
+        guard showNotifications else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Copied to Clipboard"
+        content.body = fileName
+        content.sound = nil
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Launch at login
+
+    private func applyLaunchAtLogin() {
+        do {
+            if launchAtLogin {
+                if SMAppService.mainApp.status != .enabled {
+                    try SMAppService.mainApp.register()
+                }
+            } else {
+                if SMAppService.mainApp.status == .enabled {
+                    try SMAppService.mainApp.unregister()
+                }
+            }
+        } catch {
+            // Non-fatal: reflect actual system state back into the toggle.
+            DispatchQueue.main.async { [weak self] in
+                self?.launchAtLogin = SMAppService.mainApp.status == .enabled
+            }
+        }
+    }
+
+    // MARK: - Manual actions (gallery row menu)
+
+    func recopy(_ url: URL) {
+        handleNewFile(url)
+    }
+
+    func reveal(_ url: URL) {
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    func delete(_ url: URL) {
+        try? FileManager.default.trashItem(at: url, resultingItemURL: nil)
+    }
+}
