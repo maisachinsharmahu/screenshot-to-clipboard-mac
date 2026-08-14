@@ -46,6 +46,15 @@ enum ClipboardWriter {
         }
     }
 
+    /// Same generation-guarded write, but for an image already in memory
+    /// (the just-flattened markup export) -- no disk read needed.
+    static func copyImage(_ image: NSImage, generation: Int, currentGeneration: @escaping () -> Int) {
+        guard generation == currentGeneration() else { return }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.writeObjects([image])
+    }
+
     /// Waits until a file's size stops changing between polls, i.e. macOS
     /// has finished writing it. Returns as soon as two consecutive reads
     /// agree, or after maxTries polls if it never stabilizes.

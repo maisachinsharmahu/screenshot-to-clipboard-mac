@@ -13,6 +13,12 @@ telemetry — see [PRIVACY.md](PRIVACY.md).
 
 ## Features
 
+- **Markup editor pops up on every screenshot** (image captures only —
+  can be turned off in Settings): a full-size preview with pen, shapes
+  (rectangle/ellipse/line/arrow), text, and eraser tools, rendered in a
+  hand-drawn "sketchy" style similar to Excalidraw. Click **Done** to copy
+  your annotated version, or **Skip** to copy the screenshot as-is —
+  either way something always ends up on your clipboard automatically.
 - **Automatic clipboard copy** for `.png`/`.jpg`/`.heic`/`.tiff` screenshots
   and `.mov` screen recordings, the moment they're written to disk.
 - **Native, in-process file watching** — not a fragile shell-script cron

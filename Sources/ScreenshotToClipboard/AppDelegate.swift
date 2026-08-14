@@ -1,14 +1,29 @@
 import AppKit
 import SwiftUI
 
+private extension NSImage {
+    /// NSImage.size reports point size (which can differ from actual pixel
+    /// dimensions on Retina screenshots); the markup editor needs true
+    /// pixel dimensions so exports stay full resolution.
+    var pixelSize: CGSize {
+        guard let rep = representations.first else { return size }
+        return CGSize(width: rep.pixelsWide, height: rep.pixelsHigh)
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var galleryWindow: NSWindow?
     private var onboardingWindow: NSWindow?
+    private var markupWindow: NSWindow?
     private let appState = AppState.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
+
+        appState.onScreenshotCaptured = { [weak self] url in
+            self?.showMarkupEditor(for: url)
+        }
 
         if appState.needsOnboarding {
             showOnboarding()
@@ -88,6 +103,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// A new screenshot arrived and the editor is enabled: show the full-
+    /// size markup window. If one's already open for an older screenshot,
+    /// it's superseded (closed without copying) so only the latest ever
+    /// waits for you -- same "always the newest wins" rule the rest of the
+    /// app follows.
+    func showMarkupEditor(for url: URL) {
+        markupWindow?.close()
+        markupWindow = nil
+
+        guard let baseImage = NSImage(contentsOf: url) else {
+            appState.skipEditingAndCopyOriginal(url: url)
+            return
+        }
+        let pixelSize = baseImage.pixelSize
+
+        let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let maxDisplayWidth = screenFrame.width * 0.82
+        let maxDisplayHeight = screenFrame.height * 0.74
+        let fitScale = min(1, min(maxDisplayWidth / pixelSize.width, maxDisplayHeight / pixelSize.height))
+        let displaySize = CGSize(width: pixelSize.width * fitScale, height: pixelSize.height * fitScale)
+
+        let view = MarkupEditorView(
+            baseImage: baseImage,
+            imagePixelSize: pixelSize,
+            displaySize: displaySize,
+            onDone: { [weak self] edited in
+                self?.appState.finalizeEditedScreenshot(url: url, image: edited)
+                self?.markupWindow?.close()
+                self?.markupWindow = nil
+            },
+            onCancel: { [weak self] in
+                self?.appState.skipEditingAndCopyOriginal(url: url)
+                self?.markupWindow?.close()
+                self?.markupWindow = nil
+            }
+        )
+        let hosting = NSHostingController(rootView: view)
+        let window = NSWindow(contentViewController: hosting)
+        window.styleMask = [.titled, .closable, .fullSizeContentView]
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isMovableByWindowBackground = true
+        window.setContentSize(NSSize(width: displaySize.width + 48, height: displaySize.height + 130))
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.level = .floating
+        markupWindow = window
+
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
     }
 
     private func showOnboarding() {

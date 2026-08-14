@@ -26,6 +26,15 @@ struct SettingsView: View {
                 Toggle("Show a notification when copied", isOn: $appState.showNotifications)
             }
 
+            Section("Editing") {
+                Toggle("Open editor after each screenshot", isOn: $appState.openEditorOnCapture)
+                Text(appState.openEditorOnCapture
+                     ? "Draw, highlight, or add text before it copies. Click Done to copy your edits, or Skip to copy the plain screenshot."
+                     : "Screenshots copy to the clipboard instantly, with no review step.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("About") {
                 LabeledContent("Version", value: appVersion)
                 Link("Privacy Policy & Source on GitHub", destination: URL(string: "https://github.com/maisachinsharmahu/screenshot-to-clipboard-mac")!)

@@ -21,23 +21,35 @@ final class AppState: ObservableObject {
     @Published var showNotifications: Bool {
         didSet { UserDefaults.standard.set(showNotifications, forKey: Keys.notifications) }
     }
+    @Published var openEditorOnCapture: Bool {
+        didSet { UserDefaults.standard.set(openEditorOnCapture, forKey: Keys.openEditor) }
+    }
     @Published var needsOnboarding: Bool
     @Published var lastCopiedName: String?
 
+    /// Set by AppDelegate at launch. Fired instead of an immediate copy
+    /// when a new screenshot arrives and openEditorOnCapture is on, so the
+    /// window layer (which AppState doesn't own) can present the markup
+    /// editor. Never fired for videos -- those always copy instantly.
+    var onScreenshotCaptured: ((URL) -> Void)?
+
     private var watcher: ScreenshotWatcher?
     private var generation: Int = 0
+    private let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "tiff", "tif"]
 
     private enum Keys {
         static let watchFolder = "watchFolderPath"
         static let notifications = "showNotifications"
         static let onboardingDone = "onboardingDone"
         static let launchAtLoginDesired = "launchAtLoginDesired"
+        static let openEditor = "openEditorOnCapture"
     }
 
     private init() {
         let defaults = UserDefaults.standard
         self.watchFolderPath = defaults.string(forKey: Keys.watchFolder)
         self.showNotifications = defaults.object(forKey: Keys.notifications) as? Bool ?? true
+        self.openEditorOnCapture = defaults.object(forKey: Keys.openEditor) as? Bool ?? true
         self.needsOnboarding = !defaults.bool(forKey: Keys.onboardingDone)
         self.launchAtLogin = SMAppService.mainApp.status == .enabled
 
@@ -127,6 +139,17 @@ final class AppState: ObservableObject {
     }
 
     private func handleNewFile(_ url: URL) {
+        let isImage = imageExtensions.contains(url.pathExtension.lowercased())
+        if isImage && openEditorOnCapture {
+            DispatchQueue.main.async { [weak self] in
+                self?.onScreenshotCaptured?(url)
+            }
+            return
+        }
+        copyAndAnnounce(url)
+    }
+
+    private func copyAndAnnounce(_ url: URL) {
         generation += 1
         let myGeneration = generation
         ClipboardWriter.copy(url, generation: myGeneration, currentGeneration: { [weak self] in self?.generation ?? -1 })
@@ -134,6 +157,29 @@ final class AppState: ObservableObject {
             self?.lastCopiedName = url.lastPathComponent
             self?.notify(fileName: url.lastPathComponent)
         }
+    }
+
+    /// Called by AppDelegate when the markup editor finishes with "Done":
+    /// overwrites the file with the annotated version and copies that.
+    func finalizeEditedScreenshot(url: URL, image: NSImage) {
+        if let tiff = image.tiffRepresentation,
+           let rep = NSBitmapImageRep(data: tiff),
+           let png = rep.representation(using: .png, properties: [:]) {
+            try? png.write(to: url)
+        }
+        generation += 1
+        let myGeneration = generation
+        ClipboardWriter.copyImage(image, generation: myGeneration, currentGeneration: { [weak self] in self?.generation ?? -1 })
+        lastCopiedName = url.lastPathComponent
+        notify(fileName: url.lastPathComponent)
+    }
+
+    /// Called by AppDelegate when the markup editor is skipped/cancelled:
+    /// the plain, unedited screenshot still gets copied, same as if the
+    /// editor were off -- this app's core promise (something always ends
+    /// up on your clipboard automatically) holds either way.
+    func skipEditingAndCopyOriginal(url: URL) {
+        copyAndAnnounce(url)
     }
 
     private func notify(fileName: String) {
@@ -170,7 +216,9 @@ final class AppState: ObservableObject {
     // MARK: - Manual actions (gallery row menu)
 
     func recopy(_ url: URL) {
-        handleNewFile(url)
+        // A deliberate "copy this again" from the gallery is not a new
+        // capture -- always instant, never reopens the markup editor.
+        copyAndAnnounce(url)
     }
 
     func reveal(_ url: URL) {
