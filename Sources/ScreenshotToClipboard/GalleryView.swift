@@ -26,7 +26,7 @@ struct GalleryView: View {
 
     private var header: some View {
         HStack {
-            Text("Screenshot to Clipboard").font(.headline)
+            Text("ClipShot").font(.headline)
             Spacer()
             if let name = appState.lastCopiedName {
                 Label("Copied \(name)", systemImage: "checkmark.circle.fill")

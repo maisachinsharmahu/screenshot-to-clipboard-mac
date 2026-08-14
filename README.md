@@ -1,10 +1,10 @@
-# Screenshot to Clipboard
+# ClipShot - Screen to Clipboard
 
 **Screenshots that copy themselves.**
 
 macOS shows your screenshot as a floating thumbnail for a few seconds, then
 it's gone — and if you didn't drag it somewhere in time, you're digging
-through Finder to find it. Screenshot to Clipboard fixes that: every screenshot and screen
+through Finder to find it. ClipShot fixes that: every screenshot and screen
 recording you take is copied to your clipboard automatically, the instant
 it's saved. Just `⌘⇧4`, then `⌘V` wherever you need it.
 
@@ -15,8 +15,8 @@ telemetry — see [PRIVACY.md](PRIVACY.md).
 
 - **Automatic clipboard copy** for `.png`/`.jpg`/`.heic`/`.tiff` screenshots
   and `.mov` screen recordings, the moment they're written to disk.
-- **Native, in-process file watching** (`DispatchSource` + a safety-net
-  poll) — not a fragile shell-script cron job, so it's fast and reliable.
+- **Native, in-process file watching** — not a fragile shell-script cron
+  job, so it's fast and reliable.
 - **Gallery window** — open the app anytime to see every screenshot you've
   taken, re-copy one, reveal it in Finder, or trash it.
 - **Menu bar only** — no Dock icon clutter; it just runs.
@@ -27,18 +27,19 @@ telemetry — see [PRIVACY.md](PRIVACY.md).
 
 ### Option A — Download (recommended)
 
-Grab the latest `Screenshot to Clipboard.dmg` from the [Releases](../../releases) page and
-open it. Inside you'll find `Screenshot to Clipboard.app` and **`Install Screenshot to Clipboard.command`**
+Grab the latest `ClipShot.dmg` from the [Releases](../../releases) page and
+open it. Inside you'll find `ClipShot.app` and **`Install ClipShot.command`**
 — double-click the `.command` file for a guided, one-click install (it
 copies the app to `/Applications`, clears the macOS download-quarantine
 flag that causes the unnotarized-app warning below, and launches it).
 
-Because Screenshot to Clipboard isn't notarized by Apple (that requires a paid $99/year
+Because ClipShot isn't notarized by Apple (that requires a paid $99/year
 Developer Program membership, which this free, source-available project
 doesn't have), opening it manually will otherwise trip a Gatekeeper
 warning on first launch. **See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)**
-for the one-command fix if you hit "Screenshot to Clipboard.app is damaged" or
-"cannot be opened."
+for the fix if you hit "ClipShot.app is damaged" or "cannot be opened" —
+or just double-click the **`Fix Permission Error.command`** file also
+included in the DMG, which runs the one-line fix for you.
 
 If you'd rather verify the binary yourself first, build from source
 instead (Option B) — the build script shows exactly what's happening at
@@ -52,21 +53,21 @@ Requires Xcode (or the Xcode Command Line Tools) and Swift 5.9+.
 git clone https://github.com/maisachinsharmahu/screenshot-to-clipboard-mac.git
 cd screenshot-to-clipboard-mac
 ./scripts/build_app.sh
-open "dist/Screenshot to Clipboard.app"
+open "dist/ClipShot.app"
 ```
 
 ## First launch
 
-Screenshot to Clipboard will ask you to choose a folder to watch. **It cannot watch
+ClipShot will ask you to choose a folder to watch. **It cannot watch
 Desktop, Documents, or Downloads** — macOS silently blocks unapproved
 background processes from those special folders, which makes the feature
-unreliable, so Screenshot to Clipboard doesn't allow it. Pick (or create) a plain folder
-instead, e.g. `~/Screenshots` (this is the suggested default). Screenshot to Clipboard will
+unreliable, so ClipShot doesn't allow it. Pick (or create) a plain folder
+instead, e.g. `~/Screenshots` (this is the suggested default). ClipShot will
 also point macOS's own screenshot tool (`⌘⇧3/4/5`) at that folder for you,
 and **turns off the floating screenshot thumbnail preview** — that preview
 holds your screenshot in a temporary staging location until it's dismissed
 or times out, which delays the real file from ever reaching your watched
-folder. Since Screenshot to Clipboard copies it automatically anyway, you don't need the
+folder. Since ClipShot copies it automatically anyway, you don't need the
 preview; disabling it means the file is written straight to disk with no
 delay at all.
 
@@ -76,7 +77,7 @@ delay at all.
   was chosen over a real-time OS file-system-event stream because, in
   testing, actual screenshot writes didn't reliably fire that event; a
   plain poll turned out to be the fast, reliable option.
-- When a new matching file appears, Screenshot to Clipboard waits for it to finish
+- When a new matching file appears, ClipShot waits for it to finish
   being written (so a half-saved file is never read), then loads it and
   writes it directly to `NSPasteboard` — no shelling out to `osascript`,
   no intermediate processes.
@@ -95,8 +96,8 @@ delay at all.
 
 ## Uninstall
 
-1. Quit Screenshot to Clipboard from the menu bar (or `killall ScreenshotToClipboard`).
-2. Move `/Applications/Screenshot to Clipboard.app` to the Trash.
+1. Quit ClipShot from the menu bar (or `killall ScreenshotToClipboard`).
+2. Move `/Applications/ClipShot.app` to the Trash.
 3. Optional cleanup:
    ```bash
    defaults delete com.screenshottoclipboard.app

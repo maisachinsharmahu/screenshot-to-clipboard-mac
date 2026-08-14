@@ -57,7 +57,7 @@ final class AppState: ObservableObject {
 
     /// macOS silently restricts unapproved background processes from the
     /// special Desktop/Documents/Downloads folders. Rather than fight that,
-    /// Screenshot to Clipboard simply doesn't allow watching them (or anything inside them).
+    /// ClipShot simply doesn't allow watching them (or anything inside them).
     static func isBlockedFolder(_ url: URL) -> Bool {
         let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
         let blockedNames = ["Desktop", "Documents", "Downloads", "Library"]

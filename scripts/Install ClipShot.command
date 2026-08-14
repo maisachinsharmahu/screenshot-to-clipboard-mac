@@ -1,14 +1,14 @@
 #!/bin/bash
-# Double-click this after downloading the DMG. It installs Screenshot to
-# Clipboard to /Applications and clears the Gatekeeper quarantine flag that
-# Safari/Chrome add on download — that flag is what causes the "app is
-# damaged and can't be opened" message on an unnotarized app. Removing it is
-# safe: it only tells macOS "I've reviewed this myself," which you're doing
-# right now by reading this script before running it.
+# Double-click this after downloading the DMG. It installs ClipShot to
+# /Applications and clears the Gatekeeper quarantine flag that Safari/Chrome
+# add on download — that flag is what causes the "app is damaged and can't
+# be opened" message on an unnotarized app. Removing it is safe: it only
+# tells macOS "I've reviewed this myself," which you're doing right now by
+# reading this script before running it.
 set -e
 cd "$(dirname "$0")"
 
-APP_NAME="Screenshot to Clipboard"
+APP_NAME="ClipShot"
 
 echo "$APP_NAME Installer"
 echo "==================="

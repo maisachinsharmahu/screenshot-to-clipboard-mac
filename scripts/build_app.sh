@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 BINARY_NAME="ScreenshotToClipboard"   # Swift product name (Contents/MacOS/<this>)
-APP_NAME="Screenshot to Clipboard"    # .app bundle display name in Finder
+APP_NAME="ClipShot"                   # .app bundle display name in Finder
 BUILD_DIR=".build/release"
 DIST_DIR="dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
