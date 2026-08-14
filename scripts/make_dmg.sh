@@ -15,6 +15,8 @@ fi
 rm -rf "$STAGING" "$DMG_PATH"
 mkdir -p "$STAGING"
 cp -R "$DIST_DIR/$APP_NAME.app" "$STAGING/"
+cp "scripts/Install ClipShot.command" "$STAGING/"
+chmod +x "$STAGING/Install ClipShot.command"
 ln -s /Applications "$STAGING/Applications"
 
 hdiutil create -volname "$APP_NAME" -srcfolder "$STAGING" -ov -format UDZO "$DMG_PATH"

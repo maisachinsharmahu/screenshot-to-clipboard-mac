@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
         window.title = "Welcome to ClipShot"
-        window.setContentSize(NSSize(width: 520, height: 480))
+        window.setContentSize(NSSize(width: 520, height: 500))
         window.styleMask = [.titled, .closable]
         window.center()
         window.isReleasedWhenClosed = false

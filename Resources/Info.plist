@@ -23,7 +23,7 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2026. Open source under the MIT License.</string>
+    <string>Copyright © 2026. Source-available under the PolyForm Noncommercial License 1.0.0 — noncommercial use only.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>LSApplicationCategoryType</key>

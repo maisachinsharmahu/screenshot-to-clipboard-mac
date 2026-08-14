@@ -27,20 +27,22 @@ telemetry — see [PRIVACY.md](PRIVACY.md).
 
 ### Option A — Download (recommended)
 
-Grab the latest `ClipShot.dmg` from the [Releases](../../releases) page,
-drag `ClipShot.app` to `/Applications`, then launch it.
+Grab the latest `ClipShot.dmg` from the [Releases](../../releases) page and
+open it. Inside you'll find `ClipShot.app` and **`Install ClipShot.command`**
+— double-click the `.command` file for a guided, one-click install (it
+copies the app to `/Applications`, clears the macOS download-quarantine
+flag that causes the unnotarized-app warning below, and launches it).
 
 Because ClipShot isn't notarized by Apple (that requires a paid $99/year
-Developer Program membership, which this free open-source project doesn't
-have), macOS Gatekeeper will block the first launch with an "unidentified
-developer" warning. To open it anyway:
+Developer Program membership, which this free, source-available project
+doesn't have), opening it manually will otherwise trip a Gatekeeper
+warning on first launch. **See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)**
+for the one-command fix if you hit "ClipShot.app is damaged" or
+"cannot be opened."
 
-1. Right-click (or Control-click) `ClipShot.app` → **Open**.
-2. Click **Open** again in the dialog that appears.
-
-You only need to do this once. If you'd rather verify the binary yourself
-first, build from source instead (Option B) — the build script shows
-exactly what's happening at every step.
+If you'd rather verify the binary yourself first, build from source
+instead (Option B) — the build script shows exactly what's happening at
+every step.
 
 ### Option B — Build from source
 
@@ -99,4 +101,6 @@ Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE)
+[PolyForm Noncommercial 1.0.0](LICENSE) — free for personal, educational,
+and nonprofit use. Commercial use requires a separate license from the
+copyright holder.

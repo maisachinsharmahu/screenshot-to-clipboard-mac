@@ -13,7 +13,10 @@ final class AppState: ObservableObject {
     }
     @Published var files: [URL] = []
     @Published var launchAtLogin: Bool = false {
-        didSet { applyLaunchAtLogin() }
+        didSet {
+            UserDefaults.standard.set(launchAtLogin, forKey: Keys.launchAtLoginDesired)
+            applyLaunchAtLogin()
+        }
     }
     @Published var showNotifications: Bool {
         didSet { UserDefaults.standard.set(showNotifications, forKey: Keys.notifications) }
@@ -28,6 +31,7 @@ final class AppState: ObservableObject {
         static let watchFolder = "watchFolderPath"
         static let notifications = "showNotifications"
         static let onboardingDone = "onboardingDone"
+        static let launchAtLoginDesired = "launchAtLoginDesired"
     }
 
     private init() {
@@ -36,6 +40,13 @@ final class AppState: ObservableObject {
         self.showNotifications = defaults.object(forKey: Keys.notifications) as? Bool ?? true
         self.needsOnboarding = !defaults.bool(forKey: Keys.onboardingDone)
         self.launchAtLogin = SMAppService.mainApp.status == .enabled
+
+        // Reconcile a previously-expressed preference (e.g. set up before
+        // the app was ever launched) with actual SMAppService state.
+        let desired = defaults.object(forKey: Keys.launchAtLoginDesired) as? Bool
+        if let desired, desired != launchAtLogin {
+            launchAtLogin = desired // triggers didSet -> applyLaunchAtLogin()
+        }
 
         if let path = watchFolderPath, FileManager.default.fileExists(atPath: path) {
             startWatching(URL(fileURLWithPath: path))
@@ -93,6 +104,9 @@ final class AppState: ObservableObject {
         UserDefaults.standard.set(true, forKey: Keys.onboardingDone)
         needsOnboarding = false
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        // Runs in the background no matter what, from the very first setup —
+        // not an opt-in the user has to remember to flip.
+        launchAtLogin = true
     }
 
     // MARK: - Watching
