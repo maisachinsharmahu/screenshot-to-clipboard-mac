@@ -19,8 +19,10 @@ enum MarkupTool: String, CaseIterable, Identifiable {
 }
 
 /// A single hand-drawn-style annotation, positioned in the *base image's*
-/// coordinate space (not the on-screen view's, which may be scaled down to
-/// fit the display) so exports stay pixel-accurate regardless of zoom.
+/// native pixel space -- not the on-screen view's, which changes size as
+/// the window is resized or zoomed. Storing in image space means the
+/// canvas can apply a single scale transform for both display and export,
+/// and annotations never drift when the window is resized mid-edit.
 struct DrawingElement: Identifiable {
     let id = UUID()
     var tool: MarkupTool
@@ -59,5 +61,9 @@ enum MarkupPalette {
         Color(red: 0.95, green: 0.61, blue: 0.07),   // orange
         Color(red: 0.60, green: 0.35, blue: 0.85),   // purple
     ]
-    static let strokeWidths: [CGFloat] = [2.5, 4.5, 7]
+    /// In image-pixel space (see DrawingElement doc) -- these look like odd
+    /// large numbers at rest, but render at a normal 2-8pt on screen once
+    /// the canvas's display scale (typically ~0.3-0.5 for a Retina
+    /// screenshot fit to a window) is applied.
+    static let strokeWidths: [CGFloat] = [6, 12, 20]
 }

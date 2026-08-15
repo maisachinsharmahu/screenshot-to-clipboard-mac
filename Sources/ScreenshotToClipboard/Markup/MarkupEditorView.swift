@@ -4,7 +4,6 @@ import AppKit
 struct MarkupEditorView: View {
     let baseImage: NSImage
     let imagePixelSize: CGSize
-    let displaySize: CGSize
     let onDone: (NSImage) -> Void
     let onCancel: () -> Void
 
@@ -12,72 +11,104 @@ struct MarkupEditorView: View {
     @State private var tool: MarkupTool = .pen
     @State private var color: Color = MarkupPalette.colors[1] // red -- the classic "mark this up" color
     @State private var lineWidth: CGFloat = MarkupPalette.strokeWidths[1]
+    @State private var zoomLevel: CGFloat = 1.0
+    @State private var pinchBaseline: CGFloat = 1.0
     @State private var pendingText: PendingText?
 
+    /// Position is stored in image-pixel space, same as committed
+    /// DrawingElements, so it stays correct if zoom changes mid-entry and
+    /// so finishAndCopy() can commit it without needing the current scale.
     private struct PendingText: Identifiable {
         let id = UUID()
-        var position: CGPoint
+        var imagePosition: CGPoint
         var text: String = ""
     }
 
+    private static let textSizeMultiplier: CGFloat = 6.5
+
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.black.opacity(0.001) // full-window hit area so clicks outside the image still register
+        VStack(spacing: 16) {
+            GeometryReader { geo in
+                let fitScale = min(geo.size.width / imagePixelSize.width, geo.size.height / imagePixelSize.height, 1)
+                let scale = fitScale * zoomLevel
+                let displaySize = CGSize(width: imagePixelSize.width * scale, height: imagePixelSize.height * scale)
 
-            VStack(spacing: 16) {
-                ZStack(alignment: .topLeading) {
-                    Image(nsImage: baseImage)
-                        .resizable()
-                        .frame(width: displaySize.width, height: displaySize.height)
+                ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                    ZStack(alignment: .topLeading) {
+                        Image(nsImage: baseImage)
+                            .resizable()
+                            .frame(width: displaySize.width, height: displaySize.height)
 
-                    MarkupCanvasView(
-                        document: document,
-                        displaySize: displaySize,
-                        tool: $tool,
-                        color: $color,
-                        lineWidth: $lineWidth,
-                        onRequestText: { location in
-                            pendingText = PendingText(position: location)
+                        MarkupCanvasView(
+                            document: document,
+                            imagePixelSize: imagePixelSize,
+                            scale: scale,
+                            tool: $tool,
+                            color: $color,
+                            lineWidth: $lineWidth,
+                            onRequestText: { displayPoint in
+                                pendingText = PendingText(imagePosition: CGPoint(x: displayPoint.x / scale, y: displayPoint.y / scale))
+                            }
+                        )
+
+                        if let pending = pendingText {
+                            TextField("Type…", text: Binding(
+                                get: { pending.text },
+                                set: { pendingText?.text = $0 }
+                            ))
+                            .textFieldStyle(.plain)
+                            .font(.custom("Bradley Hand", size: lineWidth * scale * Self.textSizeMultiplier))
+                            .foregroundColor(color)
+                            .fixedSize()
+                            .padding(4)
+                            .background(Color.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 4))
+                            .position(x: pending.imagePosition.x * scale + 40, y: pending.imagePosition.y * scale + 10)
+                            .onSubmit(commitPendingText)
                         }
-                    )
-
-                    if let pending = pendingText {
-                        TextField("Type…", text: Binding(
-                            get: { pending.text },
-                            set: { pendingText?.text = $0 }
-                        ))
-                        .textFieldStyle(.plain)
-                        .font(.custom("Bradley Hand", size: lineWidth * 6.5))
-                        .foregroundColor(color)
-                        .fixedSize()
-                        .padding(4)
-                        .background(Color.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 4))
-                        .position(x: pending.position.x + 40, y: pending.position.y + 10)
-                        .onSubmit { commitPendingText() }
                     }
+                    .frame(width: displaySize.width, height: displaySize.height)
                 }
-                .frame(width: displaySize.width, height: displaySize.height)
+                .frame(width: geo.size.width, height: geo.size.height)
                 .background(Color.black.opacity(0.05))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .shadow(color: .black.opacity(0.25), radius: 20, y: 8)
-
-                MarkupToolbar(
-                    tool: $tool,
-                    color: $color,
-                    lineWidth: $lineWidth,
-                    canUndo: document.canUndo,
-                    canRedo: document.canRedo,
-                    onUndo: document.undo,
-                    onRedo: document.redo,
-                    onCancel: onCancel,
-                    onDone: finishAndCopy
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            zoomLevel = min(4.0, max(0.25, pinchBaseline * value))
+                        }
+                        .onEnded { _ in
+                            pinchBaseline = zoomLevel
+                        }
                 )
             }
-            .padding(24)
+
+            MarkupToolbar(
+                tool: $tool,
+                color: $color,
+                lineWidth: $lineWidth,
+                zoomLevel: $zoomLevel,
+                canUndo: document.canUndo,
+                canRedo: document.canRedo,
+                onUndo: document.undo,
+                onRedo: document.redo,
+                onCancel: onCancel,
+                onDone: finishAndCopy
+            )
         }
+        .padding(24)
         .onExitCommand(perform: onCancel) // Escape key
         .onChange(of: tool) { newTool in
             if newTool != .text, pendingText != nil { commitPendingText() }
+        }
+        .onChange(of: zoomLevel) { newValue in
+            pinchBaseline = newValue
+        }
+        .onChange(of: color) { newColor in
+            if document.selectedID != nil { document.restyleSelected(color: newColor) }
+        }
+        .onChange(of: lineWidth) { newWidth in
+            if document.selectedID != nil { document.restyleSelected(lineWidth: newWidth) }
         }
     }
 
@@ -86,26 +117,18 @@ struct MarkupEditorView: View {
             pendingText = nil
             return
         }
-        document.commit(DrawingElement(tool: .text, points: [pending.position], color: color, lineWidth: lineWidth, text: pending.text))
+        document.commit(DrawingElement(tool: .text, points: [pending.imagePosition], color: color, lineWidth: lineWidth, text: pending.text))
         pendingText = nil
     }
 
     private func finishAndCopy() {
         if pendingText != nil { commitPendingText() }
 
-        let scale = imagePixelSize.width / displaySize.width
-        let scaledElements = document.elements.map { element -> DrawingElement in
-            var copy = element
-            copy.points = element.points.map { CGPoint(x: $0.x * scale, y: $0.y * scale) }
-            copy.lineWidth = element.lineWidth * scale
-            return copy
-        }
-
         let exportView = ZStack(alignment: .topLeading) {
             Image(nsImage: baseImage)
                 .resizable()
                 .frame(width: imagePixelSize.width, height: imagePixelSize.height)
-            StaticMarkupOverlay(elements: scaledElements)
+            StaticMarkupOverlay(elements: document.elements)
                 .frame(width: imagePixelSize.width, height: imagePixelSize.height)
         }
         .frame(width: imagePixelSize.width, height: imagePixelSize.height)
@@ -114,16 +137,13 @@ struct MarkupEditorView: View {
         renderer.scale = 1
         renderer.proposedSize = ProposedViewSize(imagePixelSize)
 
-        if let nsImage = renderer.nsImage {
-            onDone(nsImage)
-        } else {
-            onDone(baseImage)
-        }
+        onDone(renderer.nsImage ?? baseImage)
     }
 }
 
 /// Non-interactive replay of committed elements, used only for the
 /// full-resolution export render (no gestures, no selection outline).
+/// Elements are already in image-pixel space, so no transform is needed.
 private struct StaticMarkupOverlay: View {
     let elements: [DrawingElement]
 

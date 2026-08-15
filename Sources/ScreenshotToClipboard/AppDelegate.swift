@@ -120,16 +120,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let pixelSize = baseImage.pixelSize
 
+        // Initial window size only -- the canvas itself is driven by a
+        // GeometryReader inside MarkupEditorView, so resizing this window
+        // (now .resizable) reflows the content live rather than clipping it.
         let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let maxDisplayWidth = screenFrame.width * 0.82
         let maxDisplayHeight = screenFrame.height * 0.74
         let fitScale = min(1, min(maxDisplayWidth / pixelSize.width, maxDisplayHeight / pixelSize.height))
-        let displaySize = CGSize(width: pixelSize.width * fitScale, height: pixelSize.height * fitScale)
+        let initialContentSize = CGSize(width: pixelSize.width * fitScale, height: pixelSize.height * fitScale)
 
         let view = MarkupEditorView(
             baseImage: baseImage,
             imagePixelSize: pixelSize,
-            displaySize: displaySize,
             onDone: { [weak self] edited in
                 self?.appState.finalizeEditedScreenshot(url: url, image: edited)
                 self?.markupWindow?.close()
@@ -143,11 +145,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.styleMask = [.titled, .closable, .fullSizeContentView]
+        window.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.isMovableByWindowBackground = true
-        window.setContentSize(NSSize(width: displaySize.width + 48, height: displaySize.height + 130))
+        // Deliberately NOT isMovableByWindowBackground: with a hidden title
+        // bar, that makes the whole window draggable from any unclaimed
+        // background pixel -- which raced against and stole the canvas's
+        // own drag gestures, making the window move instead of drawing.
+        window.setContentSize(NSSize(width: initialContentSize.width + 48, height: initialContentSize.height + 130))
+        window.minSize = NSSize(width: 420, height: 340)
         window.center()
         window.isReleasedWhenClosed = false
         window.level = .floating

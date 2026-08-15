@@ -4,6 +4,7 @@ struct MarkupToolbar: View {
     @Binding var tool: MarkupTool
     @Binding var color: Color
     @Binding var lineWidth: CGFloat
+    @Binding var zoomLevel: CGFloat
     let canUndo: Bool
     let canRedo: Bool
     let onUndo: () -> Void
@@ -12,6 +13,8 @@ struct MarkupToolbar: View {
     let onDone: () -> Void
 
     private let toolOrder: [MarkupTool] = [.select, .pen, .rectangle, .ellipse, .arrow, .line, .text, .eraser]
+    private let zoomRange: ClosedRange<CGFloat> = 0.25...4.0
+    private let swatchPreviewSizes: [CGFloat] = [8, 12, 17]
 
     var body: some View {
         HStack(spacing: 14) {
@@ -56,17 +59,46 @@ struct MarkupToolbar: View {
             Divider().frame(height: 20)
 
             HStack(spacing: 6) {
-                ForEach(MarkupPalette.strokeWidths, id: \.self) { w in
+                ForEach(Array(MarkupPalette.strokeWidths.enumerated()), id: \.offset) { i, w in
                     Button {
                         lineWidth = w
                     } label: {
                         Circle()
                             .fill(lineWidth == w ? Color.accentColor : Color.secondary.opacity(0.5))
-                            .frame(width: w + 4, height: w + 4)
+                            .frame(width: swatchPreviewSizes[i], height: swatchPreviewSizes[i])
                             .frame(width: 22, height: 22)
                     }
                     .buttonStyle(.plain)
                 }
+            }
+
+            Divider().frame(height: 20)
+
+            HStack(spacing: 4) {
+                Button {
+                    zoomLevel = max(zoomRange.lowerBound, (zoomLevel - 0.25).rounded(toNearest: 0.25))
+                } label: {
+                    Image(systemName: "minus.magnifyingglass").frame(width: 24, height: 26)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    zoomLevel = 1.0
+                } label: {
+                    Text("\(Int(zoomLevel * 100))%")
+                        .font(.system(size: 11, weight: .medium))
+                        .monospacedDigit()
+                        .frame(minWidth: 36)
+                }
+                .buttonStyle(.plain)
+                .help("Reset to fit window")
+
+                Button {
+                    zoomLevel = min(zoomRange.upperBound, (zoomLevel + 0.25).rounded(toNearest: 0.25))
+                } label: {
+                    Image(systemName: "plus.magnifyingglass").frame(width: 24, height: 26)
+                }
+                .buttonStyle(.plain)
             }
 
             Divider().frame(height: 20)
@@ -78,6 +110,7 @@ struct MarkupToolbar: View {
                 .buttonStyle(.plain)
                 .disabled(!canUndo)
                 .opacity(canUndo ? 1 : 0.35)
+                .keyboardShortcut("z", modifiers: .command)
 
                 Button(action: onRedo) {
                     Image(systemName: "arrow.uturn.forward").frame(width: 26, height: 26)
@@ -85,6 +118,7 @@ struct MarkupToolbar: View {
                 .buttonStyle(.plain)
                 .disabled(!canRedo)
                 .opacity(canRedo ? 1 : 0.35)
+                .keyboardShortcut("z", modifiers: [.command, .shift])
             }
 
             Spacer(minLength: 8)
@@ -108,5 +142,11 @@ struct MarkupToolbar: View {
 
     private func colorMatches(_ swatch: Color) -> Bool {
         color.description == swatch.description
+    }
+}
+
+private extension CGFloat {
+    func rounded(toNearest step: CGFloat) -> CGFloat {
+        (self / step).rounded() * step
     }
 }
