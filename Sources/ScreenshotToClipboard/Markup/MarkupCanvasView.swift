@@ -23,9 +23,18 @@ struct MarkupCanvasView: View {
     @Binding var color: Color
     @Binding var lineWidth: CGFloat
     var onRequestText: (CGPoint) -> Void // display-space point, for overlay placement
+    /// Fired once at the very start of any new gesture -- lets the parent
+    /// commit an in-progress text entry before this interaction touches
+    /// anything, regardless of which tool is now active. Without this, a
+    /// second click while a text field was still open (e.g. placing a new
+    /// text box, or drawing elsewhere) would abandon the just-typed text
+    /// with no way to save it -- there's no separate "confirm" step,
+    /// clicking away is a completely normal way to finish typing.
+    var onInteractionBegan: () -> Void
 
     @State private var liveElement: DrawingElement?
     @State private var dragOrigin: CGPoint?
+    @State private var gestureActive = false
 
     private var displaySize: CGSize {
         CGSize(width: imagePixelSize.width * scale, height: imagePixelSize.height * scale)
@@ -53,6 +62,11 @@ struct MarkupCanvasView: View {
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
+                if !gestureActive {
+                    gestureActive = true
+                    onInteractionBegan()
+                }
+
                 let start = toImageSpace(value.startLocation)
                 let current = toImageSpace(value.location)
 
@@ -96,6 +110,7 @@ struct MarkupCanvasView: View {
                 }
                 liveElement = nil
                 dragOrigin = nil
+                gestureActive = false
             }
     }
 }

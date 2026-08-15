@@ -46,7 +46,11 @@ struct MarkupEditorView: View {
                             color: $color,
                             lineWidth: $lineWidth,
                             onRequestText: { displayPoint in
+                                if pendingText != nil { commitPendingText() }
                                 pendingText = PendingText(imagePosition: CGPoint(x: displayPoint.x / scale, y: displayPoint.y / scale))
+                            },
+                            onInteractionBegan: {
+                                if pendingText != nil { commitPendingText() }
                             }
                         )
 
