@@ -55,6 +55,9 @@ struct MarkupEditorView: View {
                         )
 
                         if let pending = pendingText {
+                            // No background box: typing should look exactly
+                            // like the text will once placed -- just the
+                            // cursor and characters directly on the image.
                             TextField("Type…", text: Binding(
                                 get: { pending.text },
                                 set: { pendingText?.text = $0 }
@@ -63,8 +66,6 @@ struct MarkupEditorView: View {
                             .font(.custom(MarkupTextStyle.fontName, size: MarkupTextStyle.pointSize(for: lineWidth) * scale))
                             .foregroundColor(color)
                             .fixedSize()
-                            .padding(4)
-                            .background(Color.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 4))
                             .position(x: pending.imagePosition.x * scale + 40, y: pending.imagePosition.y * scale + 10)
                             .focused($textFieldFocused)
                             .onSubmit(commitPendingText)
