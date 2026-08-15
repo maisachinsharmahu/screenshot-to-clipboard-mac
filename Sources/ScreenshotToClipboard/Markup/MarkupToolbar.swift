@@ -5,6 +5,10 @@ struct MarkupToolbar: View {
     @Binding var color: Color
     @Binding var lineWidth: CGFloat
     @Binding var zoomLevel: CGFloat
+    /// True when the size picker should mean "text size" (Aa, Aa, Aa)
+    /// instead of "stroke width" (dots) -- active tool is .text, or a
+    /// selected element is a text element.
+    let isTextSizeContext: Bool
     let canUndo: Bool
     let canRedo: Bool
     let onUndo: () -> Void
@@ -15,6 +19,7 @@ struct MarkupToolbar: View {
     private let toolOrder: [MarkupTool] = [.select, .pen, .rectangle, .ellipse, .arrow, .line, .text, .eraser]
     private let zoomRange: ClosedRange<CGFloat> = 0.25...4.0
     private let swatchPreviewSizes: [CGFloat] = [8, 12, 17]
+    private let textPreviewSizes: [CGFloat] = [11, 15, 20]
 
     var body: some View {
         HStack(spacing: 14) {
@@ -58,17 +63,25 @@ struct MarkupToolbar: View {
 
             Divider().frame(height: 20)
 
-            HStack(spacing: 6) {
+            HStack(spacing: isTextSizeContext ? 2 : 6) {
                 ForEach(Array(MarkupPalette.strokeWidths.enumerated()), id: \.offset) { i, w in
                     Button {
                         lineWidth = w
                     } label: {
-                        Circle()
-                            .fill(lineWidth == w ? Color.accentColor : Color.secondary.opacity(0.5))
-                            .frame(width: swatchPreviewSizes[i], height: swatchPreviewSizes[i])
-                            .frame(width: 22, height: 22)
+                        if isTextSizeContext {
+                            Text("A")
+                                .font(.system(size: textPreviewSizes[i], weight: .semibold))
+                                .foregroundStyle(lineWidth == w ? Color.accentColor : Color.secondary)
+                                .frame(width: 24, height: 26)
+                        } else {
+                            Circle()
+                                .fill(lineWidth == w ? Color.accentColor : Color.secondary.opacity(0.5))
+                                .frame(width: swatchPreviewSizes[i], height: swatchPreviewSizes[i])
+                                .frame(width: 22, height: 22)
+                        }
                     }
                     .buttonStyle(.plain)
+                    .help(isTextSizeContext ? "Text size" : "Stroke width")
                 }
             }
 

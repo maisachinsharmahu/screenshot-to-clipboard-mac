@@ -31,7 +31,7 @@ enum MarkupElementRenderer {
             guard let anchor = element.points.first else { return }
             let resolved = context.resolve(
                 Text(element.text)
-                    .font(.custom("Bradley Hand", size: element.lineWidth * 6.5))
+                    .font(MarkupTextStyle.swiftUIFont(lineWidth: element.lineWidth))
                     .foregroundColor(element.color)
             )
             context.draw(resolved, at: anchor, anchor: .topLeading)

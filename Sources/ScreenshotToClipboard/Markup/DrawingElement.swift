@@ -34,6 +34,15 @@ struct DrawingElement: Identifiable {
 
     var boundingBox: CGRect {
         guard let first = points.first else { return .zero }
+
+        if tool == .text {
+            // Text is anchored at one point but renders much wider than a
+            // fixed padding box would suggest -- measure the actual string
+            // so select/eraser hit-testing matches what's on screen.
+            let size = MarkupTextStyle.measure(text, lineWidth: lineWidth)
+            return CGRect(x: first.x, y: first.y, width: size.width, height: size.height)
+        }
+
         var minX = first.x, minY = first.y, maxX = first.x, maxY = first.y
         for p in points {
             minX = min(minX, p.x); minY = min(minY, p.y)

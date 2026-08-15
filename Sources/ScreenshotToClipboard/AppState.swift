@@ -141,6 +141,13 @@ final class AppState: ObservableObject {
     private func handleNewFile(_ url: URL) {
         let isImage = imageExtensions.contains(url.pathExtension.lowercased())
         if isImage && openEditorOnCapture {
+            // Copy the plain screenshot immediately, no matter what happens
+            // with the editor afterward -- whether the window opens, whether
+            // you engage with it, whether Done ever gets clicked. Editing is
+            // additive: finishing with Done overwrites the clipboard with
+            // the annotated version, but something is guaranteed to already
+            // be there from the instant the screenshot was taken.
+            copyAndAnnounce(url)
             DispatchQueue.main.async { [weak self] in
                 self?.onScreenshotCaptured?(url)
             }
@@ -174,10 +181,10 @@ final class AppState: ObservableObject {
         notify(fileName: url.lastPathComponent)
     }
 
-    /// Called by AppDelegate when the markup editor is skipped/cancelled:
-    /// the plain, unedited screenshot still gets copied, same as if the
-    /// editor were off -- this app's core promise (something always ends
-    /// up on your clipboard automatically) holds either way.
+    /// Called by AppDelegate when the markup editor is skipped/cancelled.
+    /// The plain screenshot was already copied the instant it was captured
+    /// (see handleNewFile), so this is just a safety-net re-copy in case
+    /// anything else touched the clipboard while the editor was open.
     func skipEditingAndCopyOriginal(url: URL) {
         copyAndAnnounce(url)
     }

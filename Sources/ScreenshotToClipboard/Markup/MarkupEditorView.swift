@@ -14,6 +14,7 @@ struct MarkupEditorView: View {
     @State private var zoomLevel: CGFloat = 1.0
     @State private var pinchBaseline: CGFloat = 1.0
     @State private var pendingText: PendingText?
+    @FocusState private var textFieldFocused: Bool
 
     /// Position is stored in image-pixel space, same as committed
     /// DrawingElements, so it stays correct if zoom changes mid-entry and
@@ -23,8 +24,6 @@ struct MarkupEditorView: View {
         var imagePosition: CGPoint
         var text: String = ""
     }
-
-    private static let textSizeMultiplier: CGFloat = 6.5
 
     var body: some View {
         VStack(spacing: 16) {
@@ -57,13 +56,15 @@ struct MarkupEditorView: View {
                                 set: { pendingText?.text = $0 }
                             ))
                             .textFieldStyle(.plain)
-                            .font(.custom("Bradley Hand", size: lineWidth * scale * Self.textSizeMultiplier))
+                            .font(.custom(MarkupTextStyle.fontName, size: MarkupTextStyle.pointSize(for: lineWidth) * scale))
                             .foregroundColor(color)
                             .fixedSize()
                             .padding(4)
                             .background(Color.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 4))
                             .position(x: pending.imagePosition.x * scale + 40, y: pending.imagePosition.y * scale + 10)
+                            .focused($textFieldFocused)
                             .onSubmit(commitPendingText)
+                            .onAppear { textFieldFocused = true }
                         }
                     }
                     .frame(width: displaySize.width, height: displaySize.height)
@@ -88,6 +89,7 @@ struct MarkupEditorView: View {
                 color: $color,
                 lineWidth: $lineWidth,
                 zoomLevel: $zoomLevel,
+                isTextSizeContext: tool == .text || document.elements.first(where: { $0.id == document.selectedID })?.tool == .text,
                 canUndo: document.canUndo,
                 canRedo: document.canRedo,
                 onUndo: document.undo,
@@ -109,6 +111,11 @@ struct MarkupEditorView: View {
         }
         .onChange(of: lineWidth) { newWidth in
             if document.selectedID != nil { document.restyleSelected(lineWidth: newWidth) }
+        }
+        .onChange(of: textFieldFocused) { focused in
+            // Commit as soon as focus leaves the field -- e.g. clicking
+            // elsewhere on the canvas -- not only on pressing Return.
+            if !focused, pendingText != nil { commitPendingText() }
         }
     }
 

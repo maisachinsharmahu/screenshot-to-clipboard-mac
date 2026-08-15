@@ -79,18 +79,46 @@ enum RoughRenderer {
         return roughPolyline(points: corners, closed: true, seed: seed)
     }
 
+    /// Unlike rectangles/lines, an ellipse can't be built from a handful of
+    /// independently-jittered straight segments (roughPolyline) without
+    /// reading as a many-sided polygon instead of a circle -- each segment's
+    /// own random curve breaks tangent continuity with its neighbors. This
+    /// instead samples many closely-spaced points around the true ellipse
+    /// with a small proportional wobble, then threads one continuous
+    /// quad-curve spline through them (each curve's endpoint is the
+    /// midpoint of consecutive samples -- the standard smooth-through-
+    /// points trick), stroked twice for the sketchy double-pass look.
     static func roughEllipse(_ rect: CGRect, seed: Int) -> Path {
-        let steps = 20
+        var path = Path()
+        path.addPath(wobblyEllipsePass(rect, seed: seed))
+        path.addPath(wobblyEllipsePass(rect, seed: seed &+ 6151))
+        return path
+    }
+
+    private static func wobblyEllipsePass(_ rect: CGRect, seed: Int) -> Path {
+        let steps = 48
+        var rng = SeededGenerator(seed: seed)
         let cx = rect.midX, cy = rect.midY
         let rx = rect.width / 2, ry = rect.height / 2
-        var rng = SeededGenerator(seed: seed)
+        let wobble = min(rect.width, rect.height) * 0.012
+
         var points: [CGPoint] = []
         for i in 0..<steps {
             let t = (CGFloat(i) / CGFloat(steps)) * 2 * .pi
-            let wobble = CGFloat.random(in: -0.02...0.02, using: &rng)
-            points.append(CGPoint(x: cx + rx * cos(t) * (1 + wobble), y: cy + ry * sin(t) * (1 + wobble)))
+            let r = CGFloat.random(in: -wobble...wobble, using: &rng)
+            points.append(CGPoint(x: cx + (rx + r) * cos(t), y: cy + (ry + r) * sin(t)))
         }
-        return roughPolyline(points: points, closed: true, seed: seed &+ 13)
+
+        var path = Path()
+        path.move(to: points[0])
+        for i in 1...points.count {
+            let cur = points[i % points.count]
+            let prev = points[i - 1]
+            let mid = CGPoint(x: (prev.x + cur.x) / 2, y: (prev.y + cur.y) / 2)
+            path.addQuadCurve(to: mid, control: prev)
+        }
+        path.closeSubpath()
+        return path
     }
 
     /// Line plus a small V arrowhead at the end, all in the same sketchy style.
