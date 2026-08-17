@@ -110,4 +110,4 @@ ClipShot is allowed there.
 
 ## Still stuck?
 
-Open an issue: <https://github.com/maisachinsharmahu/screenshot-to-clipboard-mac/issues>
+Open an issue: <https://github.com/maisachinsharmahu/ClipShot/issues>

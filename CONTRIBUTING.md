@@ -8,8 +8,8 @@ goal, see [PRIVACY.md](PRIVACY.md)).
 ## Setup
 
 ```bash
-git clone https://github.com/maisachinsharmahu/screenshot-to-clipboard-mac.git
-cd screenshot-to-clipboard-mac
+git clone https://github.com/maisachinsharmahu/ClipShot.git
+cd ClipShot
 swift build
 ```
 

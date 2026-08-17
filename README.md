@@ -56,8 +56,8 @@ every step.
 Requires Xcode (or the Xcode Command Line Tools) and Swift 5.9+.
 
 ```bash
-git clone https://github.com/maisachinsharmahu/screenshot-to-clipboard-mac.git
-cd screenshot-to-clipboard-mac
+git clone https://github.com/maisachinsharmahu/ClipShot.git
+cd ClipShot
 ./scripts/build_app.sh
 open "dist/ClipShot.app"
 ```
